@@ -1,84 +1,78 @@
-# This is my package injectqueryparams
+# Laravel query param injector
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/mortenscheel/injectqueryparams.svg?style=flat-square)](https://packagist.org/packages/mortenscheel/injectqueryparams)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/mortenscheel/injectqueryparams/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/mortenscheel/injectqueryparams/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/mortenscheel/injectqueryparams/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/mortenscheel/injectqueryparams/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/mortenscheel/injectqueryparams.svg?style=flat-square)](https://packagist.org/packages/mortenscheel/injectqueryparams)
+I learned about the [Symfony feature](https://symfony.com/doc/current/controller.html#automatic-mapping-of-the-request) earlier today, and wondered if it could be implemented in Laravel.
 
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
+This package is a proof of concept. It should definitely not be used in production.
 
-## Support us
+The implementation is not beautiful, and there are probably all kinds of problems with how I've done it. 
+Adding extra functionality to Laravel's dependency injection logic from a package can't be done without extending some core framework services,
+which is obviously not ideal.
 
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/InjectQueryParams.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/InjectQueryParams)
+Since Symfony's http kernel is already included in Laravel, I've just used their `QueryParameterValueResolver` to resolve, validate and cast the values.
 
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
+If you have comments, please post them on this [discussion in the laravel/framework repo](https://github.com/laravel/framework/discussions/52185)
 
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+## How it works.
+
+By adding the `Symfony\Component\HttpKernel\Attribute\MapQueryParameter` attribute to arguments in your route actions, 
+they will be automatically injected from query params.
+
+## Example
+Controller method
+```php
+public function demo(
+    #[MapQueryParameter] Type $enum,
+    #[MapQueryParameter] string $string,
+    #[MapQueryParameter] int $int,
+    #[MapQueryParameter] float $float,
+    #[MapQueryParameter] bool $bool,
+    #[MapQueryParameter] array $strings,
+    #[MapQueryParameter] int $optional = 42,
+) {
+    dump(compact('enum', 'string', 'int', 'float', 'bool', 'strings', 'optional'));
+}
+```
+URL
+```
+http://127.0.0.1:8000/?enum=2&string=foo&int=42&float=3.14&bool=0&strings[]=a&strings[]=b
+```
+Response
+```
+array:7 [▼
+  "enum" => App\Enum\Type {#257 ▼
+    +name: "Two"
+    +value: 2
+  }
+  "string" => "foo"
+  "int" => 42
+  "float" => 3.14
+  "bool" => false
+  "strings" => array:2 [▼
+    0 => "a"
+    1 => "b"
+  ]
+  "optional" => 42
+]
+```
+## Notice
+- If a required argument (without a default value) can't be found in the query params, a ValidationException is thrown.
+- Types are optional. If no type is hinted, the original string values are injected.
 
 ## Installation
+I won't publish this package on Packagist, but if you want to try it out, you can install it like this:
 
-You can install the package via composer:
-
+Add to composer.json
+```json
+{
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/mortenscheel/inject-query-params"
+        }
+    ],
+}
+```
+Then run
 ```bash
-composer require mortenscheel/injectqueryparams
+composer require --dev mortenscheel/inject-query-params=dev-master
 ```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="injectqueryparams-migrations"
-php artisan migrate
-```
-
-You can publish the config file with:
-
-```bash
-php artisan vendor:publish --tag="injectqueryparams-config"
-```
-
-This is the contents of the published config file:
-
-```php
-return [
-];
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="injectqueryparams-views"
-```
-
-## Usage
-
-```php
-$injectQueryParams = new Scheel\InjectQueryParams();
-echo $injectQueryParams->echoPhrase('Hello, Scheel!');
-```
-
-## Testing
-
-```bash
-composer test
-```
-
-## Changelog
-
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
-
-## Contributing
-
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
-
-## Security Vulnerabilities
-
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
-
-## Credits
-
-- [Morten Scheel](https://github.com/mortenscheel)
-- [All Contributors](../../contributors)
-
-## License
-
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
